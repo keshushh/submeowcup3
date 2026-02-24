@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>SUBMEOW CUP</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+body{
+    margin:0;
+    font-family:'Orbitron',sans-serif;
+    background:linear-gradient(135deg,#0f1923,#1a1f2b);
+    color:white;
+}
+
+/* ================= INTRO ================= */
+
+#intro{
+    position:fixed;
+    inset:0;
+    background:#000;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+    transition:opacity 1.2s ease;
+}
+
+#intro h1{
+    font-size:64px;
+    letter-spacing:8px;
+    opacity:0;
+    transform:scale(0.8);
+    transition:all 1.5s cubic-bezier(.22,.61,.36,1);
+}
+
+/* активное состояние */
+#intro.show h1{
+    opacity:1;
+    transform:scale(1);
+    text-shadow:0 0 40px rgba(255,255,255,0.7);
+}
+
+#intro.hide{
+    opacity:0;
+    pointer-events:none;
+}
+
+/* ================= MAIN CONTENT ================= */
+
+#mainContent{
+    opacity:0;
+    transition:opacity 1.5s ease;
+}
+
+#mainContent.show{
+    opacity:1;
+}
+
+h1{
+    text-align:center;
+    padding:25px;
+    letter-spacing:4px;
+}
+
+/* остальной стиль без изменений */
+
+.team-select{
+    display:flex;
+    justify-content:center;
+    gap:60px;
+    margin-bottom:25px;
+}
+
+.team-card{
+    width:250px;
+    padding:20px;
+    text-align:center;
+    border-radius:15px;
+    cursor:pointer;
+    transition:.3s;
+    border:3px solid transparent;
+    font-size:20px;
+}
+
+.teamA{ background:linear-gradient(135deg,#ff4655,#b31224); }
+.teamB{ background:linear-gradient(135deg,#00b0ff,#005bea); }
+
+.team-card:hover{ transform:scale(1.05); }
+
+.active-team{
+    border:3px solid #ffffff;
+    box-shadow:0 0 20px rgba(255,255,255,0.6);
+}
+
+.status{
+    text-align:center;
+    font-size:20px;
+    margin-bottom:15px;
+}
+
+.controls{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.controls button{
+    padding:8px 18px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.reset{ background:#555; color:white; }
+.undo{ background:#ffaa00; color:black; }
+
+.container{
+    display:flex;
+    justify-content:center;
+    gap:60px;
+    padding:20px;
+}
+
+.section{ width:600px; }
+
+.section h2{ text-align:center; }
+
+.mode-buttons{
+    text-align:center;
+    margin-bottom:15px;
+}
+
+.mode-buttons button{
+    padding:8px 18px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.active{
+    background:#00c853 !important;
+    color:black;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.card{
+    background:#1f2a35;
+    border-radius:12px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:.3s;
+    border:3px solid transparent;
+    position:relative;
+}
+
+.card img{
+    width:100%;
+    height:110px;
+    object-fit:cover;
+}
+
+.card span{
+    display:block;
+    padding:6px;
+    font-size:13px;
+}
+
+.card:hover{ transform:scale(1.05); }
+
+.banned{
+    filter:grayscale(100%);
+    border:3px solid red;
+}
+
+.picked{
+    border:3px solid #00ff88;
+}
+
+.tag{
+    position:absolute;
+    top:5px;
+    right:5px;
+    background:rgba(0,0,0,0.85);
+    padding:4px 7px;
+    font-size:11px;
+    border-radius:4px;
+}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+    <h1>SUBMEOW CUP</h1>
+</div>
+
+<!-- MAIN -->
+<div id="mainContent">
+
+<h1>SUBMEOW CUP</h1>
+
+<div class="team-select">
+    <div class="team-card teamA active-team" id="teamA" onclick="setTeam('A')">TEAM A</div>
+    <div class="team-card teamB" id="teamB" onclick="setTeam('B')">TEAM B</div>
+</div>
+
+<div class="status" id="status">Ход: TEAM A</div>
+
+<div class="controls">
+    <button class="undo" onclick="undoLast()">↩ Отменить</button>
+    <button class="reset" onclick="resetAll()">Сброс</button>
+</div>
+
+<div class="container">
+    <div class="section">
+        <h2>Карты</h2>
+        <div class="mode-buttons">
+            <button id="mapBan" onclick="setMapMode('ban')" class="active">BAN</button>
+            <button id="mapPick" onclick="setMapMode('pick')">PICK</button>
+        </div>
+        <div class="grid" id="maps"></div>
+    </div>
+
+    <div class="section">
+        <h2>Агенты</h2>
+        <div class="mode-buttons">
+            <button id="agentBan" onclick="setAgentMode('ban')" class="active">BAN</button>
+            <button id="agentPick" onclick="setAgentMode('pick')">PICK</button>
+        </div>
+        <div class="grid" id="agents"></div>
+    </div>
+</div>
+
+</div>
+
+<script>
+
+/* ===== INTRO SEQUENCE ===== */
+window.addEventListener("load", () => {
+
+    const intro = document.getElementById("intro");
+    const main = document.getElementById("mainContent");
+
+    // запуск появления текста
+    setTimeout(()=>{
+        intro.classList.add("show");
+    },100);
+
+    // через 3 секунды скрываем интро
+    setTimeout(()=>{
+        intro.classList.add("hide");
+        main.classList.add("show");
+    },3000);
+});
+
+/* ===== LOGIC ===== */
+
+let currentTeam="A";
+let mapMode="ban";
+let agentMode="ban";
+let historyStack=[];
+
+const COMPETITIVE_MAPS=[
+"Ascent","Abyss","Bind","Breeze","Corrode",
+"Fracture","Haven","Icebox","Lotus",
+"Pearl","Split","Sunset"
+];
+
+function setTeam(team){
+    currentTeam=team;
+    document.getElementById("teamA").classList.remove("active-team");
+    document.getElementById("teamB").classList.remove("active-team");
+    document.getElementById("team"+team).classList.add("active-team");
+    document.getElementById("status").innerText="Ход: TEAM "+team;
+}
+
+function setMapMode(mode){
+    mapMode=mode;
+    document.getElementById("mapBan").classList.remove("active");
+    document.getElementById("mapPick").classList.remove("active");
+    document.getElementById("map"+capitalize(mode)).classList.add("active");
+}
+
+function setAgentMode(mode){
+    agentMode=mode;
+    document.getElementById("agentBan").classList.remove("active");
+    document.getElementById("agentPick").classList.remove("active");
+    document.getElementById("agent"+capitalize(mode)).classList.add("active");
+}
+
+function capitalize(word){
+    return word.charAt(0).toUpperCase()+word.slice(1);
+}
+
+function createCard(container,item,modeType){
+    const card=document.createElement("div");
+    card.classList.add("card");
+
+    card.innerHTML=`
+        <img src="${item.image}">
+        <span>${item.name}</span>
+    `;
+
+    card.onclick=()=>{
+        if(card.classList.contains("banned")||card.classList.contains("picked")) return;
+        const mode=(modeType==="map")?mapMode:agentMode;
+        const tag=document.createElement("div");
+        tag.classList.add("tag");
+        tag.innerText=mode.toUpperCase()+" "+currentTeam;
+        card.appendChild(tag);
+        card.classList.add(mode==="ban"?"banned":"picked");
+        historyStack.push(card);
+    };
+
+    container.appendChild(card);
+}
+
+function undoLast(){
+    if(historyStack.length===0) return;
+    const lastCard=historyStack.pop();
+    lastCard.classList.remove("banned","picked");
+    const tag=lastCard.querySelector(".tag");
+    if(tag) tag.remove();
+}
+
+function resetAll(){
+    document.querySelectorAll(".card").forEach(card=>{
+        card.classList.remove("banned","picked");
+        const tag=card.querySelector(".tag");
+        if(tag) tag.remove();
+    });
+    historyStack=[];
+}
+
+async function loadData(){
+    const mapsRes = await fetch("https://valorant-api.com/v1/maps");
+    const mapsData = await mapsRes.json();
+    const mapsContainer = document.getElementById("maps");
+
+    mapsData.data
+        .filter(map=>COMPETITIVE_MAPS.includes(map.displayName))
+        .forEach(map=>{
+            createCard(mapsContainer,{
+                name:map.displayName,
+                image:map.splash
+            },"map");
+        });
+
+    const agentsRes = await fetch("https://valorant-api.com/v1/agents?isPlayableCharacter=true");
+    const agentsData = await agentsRes.json();
+    const agentsContainer = document.getElementById("agents");
+
+    agentsData.data.forEach(agent=>{
+        createCard(agentsContainer,{
+            name:agent.displayName,
+            image:agent.displayIcon
+        },"agent");
+    });
+}
+
+loadData();
+
+</script>
+
+</body>
+</html>
